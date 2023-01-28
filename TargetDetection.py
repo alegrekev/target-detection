@@ -1,4 +1,5 @@
 import cv2
+import numpy as np
 from matplotlib import pyplot as plt
 
 # states what image to use, creates 2 copies (one to keep and one to edit)
@@ -8,32 +9,68 @@ originalImage = cv2.cvtColor(originalImage, cv2.COLOR_BGR2RGB)
 colorImage = cv2.imread(image)
 colorImage = cv2.cvtColor(colorImage, cv2.COLOR_BGR2RGB)
 
-# converts image to grayscale, blurs it, and applies thresholding
-grayscaleImage = cv2.cvtColor(colorImage, cv2.COLOR_BGR2GRAY)
-blurredImage1 = cv2.GaussianBlur(grayscaleImage,(7,7), 7)
-blurredImage2 = cv2.GaussianBlur(grayscaleImage,(7,7), 7)
-blurredImageFinal = blurredImage1 + blurredImage2
-thresholdImage = cv2.Canny(blurredImageFinal,100,200)
+# converts image from RGB to HSV
+colorImageHSV = cv2.cvtColor(colorImage, cv2.COLOR_RGB2HSV)
 
-# finds contours and calculates mean area of contours
-areas = []
-contours, hierarchy = cv2.findContours(thresholdImage, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
-for cnt in contours:
-    area = cv2.contourArea(cnt)
-    areas.append(area)
-meanArea = sum(areas) / len(areas)
+#function to create a mask based on the given HSV values
+def createMask(lowerHue, lowerSaturation, lowerValue, upperHue, upperSaturation, upperValue):
+    lowerBound = np.array([lowerHue, lowerSaturation, lowerValue]) # 10 100 210, 145 40 145
+    upperBound = np.array([upperHue, upperSaturation, upperValue]) # 200 600 450, 325 455 455
+    mask = cv2.inRange(colorImageHSV, lowerBound, upperBound)
 
-# draws contours that are close to the mean area in image
+    return mask
+
+# creates masks that only show blue, yellow, orange, and purple
+blueYellowOrangeMask = createMask(10, 100, 190, 200, 600, 450)
+purpleMask = createMask(145, 50, 145, 325, 455, 455)
+
+# combines the masks
+masks = blueYellowOrangeMask | purpleMask
+
+# creates a result image that excludes everything in the mask and converts it to grayscale
+resultImage = cv2.bitwise_and(colorImage, colorImage, mask=masks)
+grayscaleImage = cv2.cvtColor(resultImage, cv2.COLOR_BGR2GRAY)
+
+# finds contours
+contours, hierarchy = cv2.findContours(grayscaleImage, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+minContourArea = 40
+
+# merge contours and get convex hull (only works if I have a way to detect contours close to each other or in hierarchy)
 for cnt in contours:
-    area = cv2.contourArea(cnt)
-    if area > 0.25 * meanArea and area < 2 * meanArea:
-        cv2.drawContours(colorImage, cnt, -1, (0, 255, 0), 3)
+    if cv2.contourArea(cnt) > minContourArea:
+        [X, Y, W, H] = cv2.boundingRect(cnt)
+        X -= 20
+        Y -= 20
+
+        croppedColorImage = colorImage[Y:Y+H+45, X:X+W+45]
+        cv2.imwrite('images/croppedDrone.jpg', croppedColorImage)
+        croppedColorImage = "images/croppedDrone.jpg"
+        croppedImage = cv2.imread(croppedColorImage)
+        croppedGrayscaleImage = cv2.cvtColor(croppedImage, cv2.COLOR_BGR2GRAY)
+
+        # applies threshold algorithm
+        thresholdImage = cv2.threshold(croppedGrayscaleImage, 127, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
+
+        # finds contours in cropped image
+        contours, hierarchy = cv2.findContours(thresholdImage, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+        # finds contours and their convex hulls from threshold image
+        hull = []
+        for cnt in contours:
+            if cv2.contourArea(cnt) > minContourArea:
+                hull.append(cv2.convexHull(cnt, False))
+
+        # draws the convex hulls for each image
+        cv2.drawContours(croppedImage, hull, -1, (0, 255, 0), 3)
+
+        # overlays cropped image onto color image
+        colorImage[Y:Y+croppedImage.shape[0], X:X+croppedImage.shape[1]] = croppedImage
 
 # plots all images
-titles = ['Original Image', 'Grayscale Image','Blurred','Threshold', 'Contours']
-images = [originalImage, grayscaleImage, blurredImageFinal, thresholdImage, colorImage]
-for i in range(5):
-    plt.subplot(2,3,i+1)
+titles = ['Original Image', 'Result Image', 'Contours']
+images = [originalImage, resultImage, colorImage]
+for i in range(3):
+    plt.subplot(2,2,i+1)
     plt.imshow(images[i],'gray',vmin=0,vmax=255)
     plt.title(titles[i])
     plt.xticks([])
