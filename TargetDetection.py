@@ -31,22 +31,26 @@ masks = blueYellowOrangeMask | purpleMask
 resultImage = cv2.bitwise_and(colorImage, colorImage, mask=masks)
 grayscaleImage = cv2.cvtColor(resultImage, cv2.COLOR_BGR2GRAY)
 
-# finds contours
+# finds contours and sets a minimum area
 contours, hierarchy = cv2.findContours(grayscaleImage, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 minContourArea = 40
 
-# merge contours and get convex hull (only works if I have a way to detect contours close to each other or in hierarchy)
+# zooms out from contours with bounded rectangles and applies thresholding
 for cnt in contours:
     if cv2.contourArea(cnt) > minContourArea:
+        # creates bounded rectangles
         [X, Y, W, H] = cv2.boundingRect(cnt)
         X -= 20
         Y -= 20
 
+        # crops images to bounded rectangles and creates a grayscale image
         croppedColorImage = colorImage[Y:Y+H+45, X:X+W+45]
         cv2.imwrite('images/croppedDrone.jpg', croppedColorImage)
         croppedColorImage = "images/croppedDrone.jpg"
         croppedImage = cv2.imread(croppedColorImage)
         croppedGrayscaleImage = cv2.cvtColor(croppedImage, cv2.COLOR_BGR2GRAY)
+
+        # detect if it a letter, and if it is, continue
 
         # applies threshold algorithm
         thresholdImage = cv2.threshold(croppedGrayscaleImage, 127, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
