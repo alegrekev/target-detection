@@ -31,26 +31,25 @@ masks = blueYellowOrangeMask | purpleMask
 resultImage = cv2.bitwise_and(colorImage, colorImage, mask=masks)
 grayscaleImage = cv2.cvtColor(resultImage, cv2.COLOR_BGR2GRAY)
 
-# finds contours and sets a minimum area
+# finds contours, sets a minimum and maximum area to detect letters
 contours, hierarchy = cv2.findContours(grayscaleImage, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 minContourArea = 40
+maxContourArea = 100
 
-# zooms out from contours with bounded rectangles and applies thresholding
+# if the contour area is between the minimum and maximum areas, it zooms out from the contour with bounded rectangles and applies thresholding
 for cnt in contours:
-    if cv2.contourArea(cnt) > minContourArea:
-        # creates bounded rectangles
+    if cv2.contourArea(cnt) > minContourArea and cv2.contourArea(cnt) < maxContourArea:
+        # creates bounded rectangle
         [X, Y, W, H] = cv2.boundingRect(cnt)
         X -= 20
         Y -= 20
 
-        # crops images to bounded rectangles and creates a grayscale image
+        # crops image to bounded rectangle and creates a grayscale image
         croppedColorImage = colorImage[Y:Y+H+45, X:X+W+45]
         cv2.imwrite('images/croppedDrone.jpg', croppedColorImage)
         croppedColorImage = "images/croppedDrone.jpg"
         croppedImage = cv2.imread(croppedColorImage)
         croppedGrayscaleImage = cv2.cvtColor(croppedImage, cv2.COLOR_BGR2GRAY)
-
-        # detect if it a letter, and if it is, continue
 
         # applies threshold algorithm
         thresholdImage = cv2.threshold(croppedGrayscaleImage, 127, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
@@ -64,11 +63,19 @@ for cnt in contours:
             if cv2.contourArea(cnt) > minContourArea:
                 hull.append(cv2.convexHull(cnt, False))
 
-        # draws the convex hulls for each image
+        # draws the convex hulls
         cv2.drawContours(croppedImage, hull, -1, (0, 255, 0), 3)
 
         # overlays cropped image onto color image
         colorImage[Y:Y+croppedImage.shape[0], X:X+croppedImage.shape[1]] = croppedImage
+    else:
+        # finds the convex hulls from the contour
+        hull = []
+        if cv2.contourArea(cnt) > minContourArea:
+            hull.append(cv2.convexHull(cnt, False))
+
+        # draws the convex hulls
+        cv2.drawContours(colorImage, hull, -1, (0, 255, 0), 3)
 
 # plots all images
 titles = ['Original Image', 'Result Image', 'Contours']
