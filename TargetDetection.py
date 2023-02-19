@@ -3,7 +3,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 
 # states what image to use, creates 2 copies (one to keep and one to edit)
-image = "images-not-used/drone5.jpg"
+image = "images/drone1.jpg"
 originalImage = cv2.imread(image)
 originalImage = cv2.cvtColor(originalImage, cv2.COLOR_BGR2RGB)
 colorImage = cv2.imread(image)
@@ -22,11 +22,9 @@ def createMask(lowerHue, lowerSaturation, lowerValue, upperHue, upperSaturation,
 
 # creates masks that only show blue, yellow, orange, and purple
 blueYellowOrangeMask = createMask(10, 100, 200, 200, 600, 450)
-purpleMask = createMask(145, 50, 145, 325, 455, 455) # 145 50 145, 45 20 45
-#carMask = createMask(45, 20, 45, 125, 155, 155) # 145 50 145, 45 20 45
+purpleMask = createMask(145, 50, 145, 325, 455, 455)
 
 # combines the masks
-#purpleMask = purpleMask - carMask
 masks = blueYellowOrangeMask | purpleMask
 
 # creates a result image that excludes everything in the mask and converts it to grayscale
@@ -84,7 +82,7 @@ for cnt in contours:
 
 # plots all images
 titles = ['Original Image', 'Result Image', 'Contours']
-images = [masks, resultImage, colorImage]
+images = [originalImage, resultImage, colorImage]
 for i in range(3):
     plt.subplot(2,2,i+1)
     plt.imshow(images[i],'gray',vmin=0,vmax=255)
