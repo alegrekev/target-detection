@@ -3,7 +3,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 
 # states what image to use, creates 2 copies (one to keep and one to edit)
-image = "images/drone1.jpg"
+image = "images-not-used/drone5.jpg"
 originalImage = cv2.imread(image)
 originalImage = cv2.cvtColor(originalImage, cv2.COLOR_BGR2RGB)
 colorImage = cv2.imread(image)
@@ -21,10 +21,12 @@ def createMask(lowerHue, lowerSaturation, lowerValue, upperHue, upperSaturation,
     return mask
 
 # creates masks that only show blue, yellow, orange, and purple
-blueYellowOrangeMask = createMask(10, 100, 190, 200, 600, 450)
-purpleMask = createMask(145, 50, 145, 325, 455, 455)
+blueYellowOrangeMask = createMask(10, 100, 200, 200, 600, 450)
+purpleMask = createMask(145, 50, 145, 325, 455, 455) # 145 50 145, 45 20 45
+#carMask = createMask(45, 20, 45, 125, 155, 155) # 145 50 145, 45 20 45
 
 # combines the masks
+#purpleMask = purpleMask - carMask
 masks = blueYellowOrangeMask | purpleMask
 
 # creates a result image that excludes everything in the mask and converts it to grayscale
@@ -33,11 +35,13 @@ grayscaleImage = cv2.cvtColor(resultImage, cv2.COLOR_BGR2GRAY)
 
 # finds contours, sets a minimum and maximum area to detect letters
 contours, hierarchy = cv2.findContours(grayscaleImage, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-minContourArea = 40
+minContourArea = 15
 maxContourArea = 100
+minRectContourArea = 100
+maxRectContourArea = 1000
 
-# if the contour area is between the minimum and maximum areas, it zooms out from the contour with bounded rectangles and applies thresholding
 for cnt in contours:
+    # if the contour area is between the minimum and maximum areas, it zooms out from the contour with bounded rectangles and applies thresholding
     if cv2.contourArea(cnt) > minContourArea and cv2.contourArea(cnt) < maxContourArea:
         # creates bounded rectangle
         [X, Y, W, H] = cv2.boundingRect(cnt)
@@ -60,7 +64,7 @@ for cnt in contours:
         # finds contours and their convex hulls from threshold image
         hull = []
         for cnt in contours:
-            if cv2.contourArea(cnt) > minContourArea:
+            if cv2.contourArea(cnt) > minRectContourArea and cv2.contourArea(cnt) < maxRectContourArea:
                 hull.append(cv2.convexHull(cnt, False))
 
         # draws the convex hulls
@@ -68,6 +72,7 @@ for cnt in contours:
 
         # overlays cropped image onto color image
         colorImage[Y:Y+croppedImage.shape[0], X:X+croppedImage.shape[1]] = croppedImage
+    # if the contour is not within the minimum and maximum areas, then it just draws the convex hulls
     else:
         # finds the convex hulls from the contour
         hull = []
@@ -79,7 +84,7 @@ for cnt in contours:
 
 # plots all images
 titles = ['Original Image', 'Result Image', 'Contours']
-images = [originalImage, resultImage, colorImage]
+images = [masks, resultImage, colorImage]
 for i in range(3):
     plt.subplot(2,2,i+1)
     plt.imshow(images[i],'gray',vmin=0,vmax=255)
