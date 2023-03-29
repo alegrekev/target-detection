@@ -36,6 +36,11 @@ contours, hierarchy = cv2.findContours(grayscale_image, cv2.RETR_EXTERNAL, cv2.C
 min_contour_area = 10
 max_contour_area = 300
 
+shapes = []
+colors = []
+alphanumerics = []
+alphanumeric_colors = []
+
 for cnt in contours:
     # if the contour area is between the minimum and maximum areas, it zooms out from the contour with bounded rectangles and applies thresholding
     if cv2.contourArea(cnt) > min_contour_area and cv2.contourArea(cnt) < max_contour_area:       
@@ -86,6 +91,10 @@ for cnt in contours:
             color = color_entry.get()
             alphanumeric = alphanumeric_entry.get()
             alphanumeric_color = alphanumeric_color_entry.get()
+            shapes.append(shape)
+            colors.append(color)
+            alphanumerics.append(alphanumeric)
+            alphanumeric_colors.append(alphanumeric_color)
             print("Shape:", shape)
             print("Color:", color)
             print("Alphanumeric:", alphanumeric)
@@ -103,3 +112,8 @@ for cnt in contours:
         
         # runs the GUI
         root.mainloop()
+
+print(shapes)
+print(colors)
+print(alphanumerics)
+print(alphanumeric_colors)
