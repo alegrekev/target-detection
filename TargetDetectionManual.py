@@ -4,7 +4,7 @@ from tkinter import *
 from PIL import ImageTk, Image
 
 """Code for target detection & image cropping"""
-# states what image to use, creates 2 copies (one to keep and one to edit)
+# states what image to use
 image = "images/drone1.jpg"
 color_image = cv2.imread(image)
 color_image = cv2.cvtColor(color_image, cv2.COLOR_BGR2RGB)
