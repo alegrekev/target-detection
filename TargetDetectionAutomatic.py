@@ -4,7 +4,7 @@ from matplotlib import pyplot as plt
 
 
 # -----------------Fields-----------------
-image_path = "images1/drone1.jpg"  # image file location
+IMAGE_PATH = "images1/drone1.jpg"  # image file location
 
 
 # -----------------Functions-----------------
@@ -230,5 +230,5 @@ def display_graph(original_image, result_image, final_image):
 
 
 # -----------------Run Functions-----------------
-detected_images = detect_targets(image_path)
-display_graph(image_path, detected_images[0], detected_images[1])
+detected_images = detect_targets(IMAGE_PATH)
+display_graph(IMAGE_PATH, detected_images[0], detected_images[1])
