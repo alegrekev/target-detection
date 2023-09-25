@@ -3,7 +3,6 @@ import numpy as np
 from tkinter import *
 from PIL import ImageTk, Image
 
-"""Code for target detection & image cropping"""
 # states what image to use
 image = "images/drone1.jpg"
 color_image = cv2.imread(image)
