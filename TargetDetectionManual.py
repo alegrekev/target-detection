@@ -4,7 +4,7 @@ from tkinter import *
 from PIL import ImageTk, Image
 
 # states what image to use
-image = "images/drone1.jpg"
+image = "images2/drone1.jpg"
 color_image = cv2.imread(image)
 color_image = cv2.cvtColor(color_image, cv2.COLOR_BGR2RGB)
 
@@ -53,8 +53,8 @@ for cnt in contours:
         cropped_color_image = color_image[Y:Y+H+45, X:X+W+45]
         cropped_color_image = cv2.cvtColor(cropped_color_image, cv2.COLOR_BGR2RGB)
         cropped_color_image = cv2.resize(cropped_color_image, (300, 300))
-        cv2.imwrite('images/croppedDrone.jpg', cropped_color_image)
-        cropped_color_image = "images/croppedDrone.jpg"
+        cv2.imwrite('images2/croppedDrone.jpg', cropped_color_image)
+        cropped_color_image = "images2/croppedDrone.jpg"
 
         """Code for input GUI"""
         # creates root

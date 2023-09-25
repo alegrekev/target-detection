@@ -4,7 +4,7 @@ from matplotlib import pyplot as plt
 
 
 # -----------------Fields-----------------
-IMAGE = "images/drone1.jpg" # image file location
+IMAGE = "images1/drone1.jpg" # image file location
 
 
 # -----------------Functions-----------------
