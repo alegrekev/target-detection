@@ -4,7 +4,7 @@ from matplotlib import pyplot as plt
 
 
 # -----------------Fields-----------------
-image = "images/drone1.jpg" # image file location
+IMAGE = "images/drone1.jpg" # image file location
 
 
 # -----------------Functions-----------------
@@ -205,7 +205,7 @@ def detectTargets(image):
     return resultImage, colorImage
 
 
-def displayGraph(resultImage, finalImage):
+def displayGraph(originalImage, resultImage, finalImage):
     """
     Function to display a graph showing images.
 
@@ -217,7 +217,7 @@ def displayGraph(resultImage, finalImage):
         None: This function displays the graph using Matplotlib.
     """
     titles = ['Original Image', 'Masked', 'Contours']
-    images = [cv2.cvtColor(cv2.imread(image), cv2.COLOR_BGR2RGB), resultImage, finalImage]
+    images = [cv2.cvtColor(cv2.imread(originalImage), cv2.COLOR_BGR2RGB), resultImage, finalImage]
     for i in range(3):
         plt.subplot(2,2,i+1)
         plt.imshow(images[i],'gray',vmin=0,vmax=255)
@@ -228,5 +228,5 @@ def displayGraph(resultImage, finalImage):
 
 
 # -----------------Run Functions-----------------
-detected_images = detectTargets(image)
-displayGraph(detected_images[0], detected_images[1])
+detected_images = detectTargets(IMAGE)
+displayGraph(IMAGE, detected_images[0], detected_images[1])
