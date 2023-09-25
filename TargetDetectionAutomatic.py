@@ -4,62 +4,62 @@ from matplotlib import pyplot as plt
 
 
 # -----------------Fields-----------------
-IMAGE = "images1/drone1.jpg" # image file location
+image_path = "images1/drone1.jpg"  # image file location
 
 
 # -----------------Functions-----------------
-def createMask(image, lowerHue, lowerSaturation, lowerValue, upperHue, upperSaturation, upperValue):
+def create_mask(image, lower_hue, lower_saturation, lower_value, upper_hue, upper_saturation, upper_value):
     """
     Function to create a mask based on the given HSV values.
 
     Args:
         image (numpy.ndarray): The input image in HSV color space.
-        lowerHue (int): The lower bound for the Hue component (0-179).
-        lowerSaturation (int): The lower bound for the Saturation component (0-255).
-        lowerValue (int): The lower bound for the Value component (0-255).
-        upperHue (int): The upper bound for the Hue component (0-179).
-        upperSaturation (int): The upper bound for the Saturation component (0-255).
-        upperValue (int): The upper bound for the Value component (0-255).
+        lower_hue (int): The lower bound for the Hue component (0-179).
+        lower_saturation (int): The lower bound for the Saturation component (0-255).
+        lower_value (int): The lower bound for the Value component (0-255).
+        upper_hue (int): The upper bound for the Hue component (0-179).
+        upper_saturation (int): The upper bound for the Saturation component (0-255).
+        upper_value (int): The upper bound for the Value component (0-255).
 
     Returns:
         mask (numpy.ndarray): The resulting mask with values indicating which pixels in the input image fall within the specified HSV range.
     """
-    lowerBound = np.array([lowerHue, lowerSaturation, lowerValue]) # creates array of lower HSV values
-    upperBound = np.array([upperHue, upperSaturation, upperValue]) # creates array of upper HSV values
-    mask = cv2.inRange(image, lowerBound, upperBound) # creates mask of every color within bounds
-    
+    lower_bound = np.array([lower_hue, lower_saturation, lower_value])  # creates array of lower HSV values
+    upper_bound = np.array([upper_hue, upper_saturation, upper_value])  # creates array of upper HSV values
+    mask = cv2.inRange(image, lower_bound, upper_bound)  # creates mask of every color within bounds
+
     return mask
 
 
-def findShape(contour, rectLocationX, rectLocationY):
+def find_shape(contour, rect_location_x, rect_location_y):
     """
     Function to detect shapes of targets.
 
     Args:
         contour (numpy.ndarray): The contour to be analyzed and for which the shape is determined.
-        rectLocationX (int): The X-coordinate of the bounding rectangle's top-left corner relative to the image.
-        rectLocationY (int): The Y-coordinate of the bounding rectangle's top-left corner relative to the image.
+        rect_location_x (int): The X-coordinate of the bounding rectangle's top-left corner relative to the image.
+        rect_location_y (int): The Y-coordinate of the bounding rectangle's top-left corner relative to the image.
 
     Returns:
-        shapeDict (dict): A dictionary containing the location (X, Y) of the shape in the image and the number of sides of the detected shape.
+        shape_dict (dict): A dictionary containing the location (X, Y) of the shape in the image and the number of sides of the detected shape.
     """
-    approx = cv2.approxPolyDP(contour, 0.06 * cv2.arcLength(contour, True), True) # approximates number of sides
+    approx = cv2.approxPolyDP(contour, 0.06 * cv2.arcLength(contour, True), True)  # approximates number of sides
 
     # gets location of the shapes in the image and adds to dictionary of shape locations & sides
     M = cv2.moments(contour)
     if M['m00'] != 0.0:
-        x = int(M['m10']/M['m00'])
-        y = int(M['m01']/M['m00'])
+        x = int(M['m10'] / M['m00'])
+        y = int(M['m01'] / M['m00'])
 
-        shapeDict = {}
-        shapeDict[str(x + rectLocationX) + ", " + str(y + rectLocationY)] = len(approx)
-        print(shapeDict)
-        return shapeDict
+        shape_dict = {}
+        shape_dict[str(x + rect_location_x) + ", " + str(y + rect_location_y)] = len(approx)
+        print(shape_dict)
+        return shape_dict
 
 
 def get_circle_percentages(image):
     """
-    Function to detect circles in an image. 
+    Function to detect circles in an image.
     https://stackoverflow.com/questions/20698613/detect-semicircle-in-opencv
 
     Args:
@@ -70,8 +70,9 @@ def get_circle_percentages(image):
     """
     dist = cv2.distanceTransform(image, cv2.DIST_L2, 0)
     rows = image.shape[0]
-    circles = cv2.HoughCircles(image, cv2.HOUGH_GRADIENT, 1, rows / 8, 50, param1=50, param2=10, minRadius=5, maxRadius=2000)      
-    minInlierDist = 2.0
+    circles = cv2.HoughCircles(image, cv2.HOUGH_GRADIENT, 1, rows / 8, 50, param1=50, param2=10, minRadius=5,
+                               maxRadius=2000)
+    min_inlier_dist = 2.0
 
     for c in circles[0, :]:
         print(c)
@@ -81,21 +82,22 @@ def get_circle_percentages(image):
         center = (c[0], c[1])
         radius = c[2]
 
-        maxInlierDist = radius/25.0
+        max_inlier_dist = radius / 25.0
 
-        if maxInlierDist < minInlierDist: maxInlierDist = minInlierDist
+        if max_inlier_dist < min_inlier_dist:
+            max_inlier_dist = min_inlier_dist
 
-        for i in np.arange(0, 2*np.pi, 0.1):
+        for i in np.arange(0, 2 * np.pi, 0.1):
             counter += 1
             x = center[0] + radius * np.cos(i)
             y = center[1] + radius * np.sin(i)
 
-            if dist.item(int(y), int(x)) < maxInlierDist:
+            if dist.item(int(y), int(x)) < max_inlier_dist:
                 inlier += 1
-            print(str(100.0*inlier/counter) + ' percent of a circle with radius ' + str(radius) + " detected")
+            print(str(100.0 * inlier / counter) + ' percent of a circle with radius ' + str(radius) + " detected")
 
 
-def contourIntersect(original_image, contour1, contour2):
+def contour_intersect(original_image, contour1, contour2):
     """
     Function to check if two contours intersect within an original image.
     https://stackoverflow.com/questions/55641425/check-if-two-contours-intersect
@@ -114,13 +116,13 @@ def contourIntersect(original_image, contour1, contour2):
 
     image1 = cv2.drawContours(blank.copy(), contours, 0, 1)
     image2 = cv2.drawContours(blank.copy(), contours, 1, 1)
-    
+
     intersection = np.logical_and(image1, image2)
-    
+
     return intersection.any()
 
 
-def detectTargets(image):
+def detect_targets(image):
     """
     Function to detect and analyze targets in an image.
 
@@ -130,97 +132,97 @@ def detectTargets(image):
     Returns:
         tuple: A tuple containing two images - the masked result image and the image with contours and shapes overlaid.
     """
-    colorImage = cv2.cvtColor(cv2.imread(image), cv2.COLOR_BGR2RGB) # reads image, converts to RGB
-    colorImageHSV = cv2.cvtColor(colorImage, cv2.COLOR_RGB2HSV) # converts image to HSV
+    color_image = cv2.cvtColor(cv2.imread(image), cv2.COLOR_BGR2RGB)  # reads image, converts to RGB
+    color_image_hsv = cv2.cvtColor(color_image, cv2.COLOR_RGB2HSV)  # converts image to HSV
 
     # creates & combines masks that only show blue, yellow, orange, and purple
-    blueYellowOrangeMask = createMask(colorImageHSV, 10, 100, 200, 200, 600, 450)
-    purpleMask = createMask(colorImageHSV, 145, 50, 145, 325, 455, 455)
-    masks = blueYellowOrangeMask | purpleMask
+    blue_yellow_orange_mask = create_mask(color_image_hsv, 10, 100, 200, 200, 600, 450)
+    purple_mask = create_mask(color_image_hsv, 145, 50, 145, 325, 455, 455)
+    masks = blue_yellow_orange_mask | purple_mask
 
     # creates a result image that excludes everything in the mask and converts it to grayscale
-    resultImage = cv2.bitwise_and(colorImage, colorImage, mask=masks)
-    grayscaleImage = cv2.cvtColor(resultImage, cv2.COLOR_BGR2GRAY)
+    result_image = cv2.bitwise_and(color_image, color_image, mask=masks)
+    grayscale_image = cv2.cvtColor(result_image, cv2.COLOR_BGR2GRAY)
 
     # finds contours, sets a minimum and maximum area to detect letters
-    contours, hierarchy = cv2.findContours(grayscaleImage, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    minContourArea = 15
-    maxContourArea = 100
-    minRectContourArea = 100
-    maxRectContourArea = 1000
+    contours, hierarchy = cv2.findContours(grayscale_image, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    min_contour_area = 15
+    max_contour_area = 100
+    min_rect_contour_area = 100
+    max_rect_contour_area = 1000
 
     # for loop to draw contours for each shape detected
     for cnt in contours:
         # if the contour area is between the minimum and maximum areas, it zooms out from the contour with bounded rectangles and applies thresholding
-        if cv2.contourArea(cnt) > minContourArea and cv2.contourArea(cnt) < maxContourArea:
+        if min_contour_area < cv2.contourArea(cnt) < max_contour_area:
             # creates bounded rectangle
-            [X, Y, W, H] = cv2.boundingRect(cnt)
-            X -= 20
-            Y -= 20
+            [x, y, w, h] = cv2.boundingRect(cnt)
+            x -= 20
+            y -= 20
 
             # crops image to bounded rectangle and creates a grayscale image
-            croppedImage = colorImage[Y:Y+H+45, X:X+W+45]
-            croppedGrayscaleImage = cv2.cvtColor(croppedImage, cv2.COLOR_BGR2GRAY)
+            cropped_image = color_image[y:y+h+45, x:x+w+45]
+            cropped_grayscale_image = cv2.cvtColor(cropped_image, cv2.COLOR_BGR2GRAY)
 
             # applies threshold algorithm
-            thresholdImage = cv2.threshold(croppedGrayscaleImage, 127, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
+            threshold_image = cv2.threshold(cropped_grayscale_image, 127, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
 
             # finds contours in cropped image
-            contours, hierarchy = cv2.findContours(thresholdImage, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+            contours, hierarchy = cv2.findContours(threshold_image, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
-            #get_circle_percentages(thresholdImage)
+            # get_circle_percentages(threshold_image)
 
             # creates convex hulls from contours
             hull = []
             for cnt in contours:
-                if cv2.contourArea(cnt) > minRectContourArea and cv2.contourArea(cnt) < maxRectContourArea:
+                if min_rect_contour_area < cv2.contourArea(cnt) < max_rect_contour_area:
                     for i in range(len(contours)):
-                        if contourIntersect(croppedImage, cnt, contours[i]) == False:
+                        if not contour_intersect(cropped_image, cnt, contours[i]):
                             hull.append(cv2.convexHull(cnt, False))
-                    
+
                             for cnt in hull:
                                 # finds shape of contours
-                                findShape(cnt, X, Y)
+                                find_shape(cnt, x, y)
 
             # draws the convex hulls on the cropped image
-            cv2.drawContours(croppedImage, hull, -1, (0, 255, 0), 3)
+            cv2.drawContours(cropped_image, hull, -1, (0, 255, 0), 3)
 
             # overlays cropped image onto color image
-            colorImage[Y:Y+croppedImage.shape[0], X:X+croppedImage.shape[1]] = croppedImage
+            color_image[y:y+cropped_image.shape[0], x:x+cropped_image.shape[1]] = cropped_image
         # if the contour is not within the minimum and maximum areas, then it just draws the convex hulls
         else:
             # creates convex hulls from contours
             hull = []
-            if cv2.contourArea(cnt) > minContourArea:
+            if cv2.contourArea(cnt) > min_contour_area:
                 for i in range(len(contours)):
-                    if contourIntersect(croppedImage, cnt, contours[i]) == False:
+                    if not contour_intersect(cropped_image, cnt, contours[i]):
                         hull.append(cv2.convexHull(cnt, False))
 
                         for cnt in hull:
                             # finds shape of contours
-                            findShape(cnt, 0, 0)
+                            find_shape(cnt, 0, 0)
 
             # draws the convex hulls
-            cv2.drawContours(colorImage, hull, -1, (0, 255, 0), 3)
-    return resultImage, colorImage
+            cv2.drawContours(color_image, hull, -1, (0, 255, 0), 3)
+    return result_image, color_image
 
 
-def displayGraph(originalImage, resultImage, finalImage):
+def display_graph(original_image, result_image, final_image):
     """
     Function to display a graph showing images.
 
     Args:
-        resultImage (numpy.ndarray): The masked result image.
-        finalImage (numpy.ndarray): The image with contours and shapes overlaid.
+        result_image (numpy.ndarray): The masked result image.
+        final_image (numpy.ndarray): The image with contours and shapes overlaid.
 
     Returns:
         None: This function displays the graph using Matplotlib.
     """
     titles = ['Original Image', 'Masked', 'Contours']
-    images = [cv2.cvtColor(cv2.imread(originalImage), cv2.COLOR_BGR2RGB), resultImage, finalImage]
+    images = [cv2.cvtColor(cv2.imread(original_image), cv2.COLOR_BGR2RGB), result_image, final_image]
     for i in range(3):
-        plt.subplot(2,2,i+1)
-        plt.imshow(images[i],'gray',vmin=0,vmax=255)
+        plt.subplot(2, 2, i + 1)
+        plt.imshow(images[i], 'gray', vmin=0, vmax=255)
         plt.title(titles[i])
         plt.xticks([])
         plt.yticks([])
@@ -228,5 +230,5 @@ def displayGraph(originalImage, resultImage, finalImage):
 
 
 # -----------------Run Functions-----------------
-detected_images = detectTargets(IMAGE)
-displayGraph(IMAGE, detected_images[0], detected_images[1])
+detected_images = detect_targets(image_path)
+display_graph(image_path, detected_images[0], detected_images[1])
