@@ -163,5 +163,3 @@ for i in range(3):
     plt.xticks([])
     plt.yticks([])
 plt.show()
-
-print("targets detected")
