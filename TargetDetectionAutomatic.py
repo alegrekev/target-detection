@@ -3,11 +3,11 @@ import numpy as np
 from matplotlib import pyplot as plt
 
 
-# -----------------fields-----------------
+# -----------------Fields-----------------
 image = "images/drone1.jpg" # image file location
 
 
-# -----------------functions-----------------
+# -----------------Functions-----------------
 def createMask(image, lowerHue, lowerSaturation, lowerValue, upperHue, upperSaturation, upperValue):
     """
     Function to create a mask based on the given HSV values.
