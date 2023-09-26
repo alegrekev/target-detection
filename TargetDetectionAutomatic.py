@@ -3,11 +3,6 @@ import numpy as np
 from matplotlib import pyplot as plt
 
 
-# -----------------Fields-----------------
-IMAGE_PATH = "images1/drone1.jpg"  # image file location
-
-
-# -----------------Functions-----------------
 def create_mask(image, lower_hue, lower_saturation, lower_value, upper_hue, upper_saturation, upper_value):
     """
     Function to create a mask based on the given HSV values.
@@ -229,6 +224,14 @@ def display_graph(original_image, result_image, final_image):
     plt.show()
 
 
-# -----------------Run Functions-----------------
-detected_images = detect_targets(IMAGE_PATH)
-display_graph(IMAGE_PATH, detected_images[0], detected_images[1])
+def main():
+    """
+    Main method that initializes and runs everything.
+    """
+    IMAGE_PATH = "images1/drone1.jpg"  # image file location
+    detected_images = detect_targets(IMAGE_PATH)
+    display_graph(IMAGE_PATH, detected_images[0], detected_images[1])
+
+
+if __name__ == "__main__":
+    main()
