@@ -54,42 +54,43 @@ def find_shape(contour, rect_location_x, rect_location_y):
 
 def get_circle_percentages(image):
     """
-    Function to detect circles in an image.
-    https://stackoverflow.com/questions/20698613/detect-semicircle-in-opencv
+    Function to detect circles in an image and calculate the percentage completeness of each detected circle.
 
     Args:
         image (numpy.ndarray): The input image in which circles are to be detected.
 
     Returns:
-        None: This function prints the percentage completeness for each detected circle.
+        List[float]: A list of percentages representing the completeness of detected circles.
     """
     dist = cv2.distanceTransform(image, cv2.DIST_L2, 0)
     rows = image.shape[0]
     circles = cv2.HoughCircles(image, cv2.HOUGH_GRADIENT, 1, rows / 8, 50, param1=50, param2=10, minRadius=5,
                                maxRadius=2000)
-    min_inlier_dist = 2.0
 
-    for c in circles[0, :]:
-        print(c)
-        counter = 0
-        inlier = 0
+    percentages = []
 
-        center = (c[0], c[1])
-        radius = c[2]
+    if circles is not None:
+        for circle in circles[0, :]:
+            center = (int(circle[0]), int(circle[1]))
+            radius = int(circle[2])
 
-        max_inlier_dist = radius / 25.0
+            inlier_count = 0
+            total_points = 0
 
-        if max_inlier_dist < min_inlier_dist:
-            max_inlier_dist = min_inlier_dist
+            for angle in np.arange(0, 2 * np.pi, 0.1):
+                total_points += 1
+                x = int(center[0] + radius * np.cos(angle))
+                y = int(center[1] + radius * np.sin(angle))
 
-        for i in np.arange(0, 2 * np.pi, 0.1):
-            counter += 1
-            x = center[0] + radius * np.cos(i)
-            y = center[1] + radius * np.sin(i)
+                if 0 <= x < image.shape[1] and 0 <= y < image.shape[0]:
+                    if dist[y, x] < (radius / 25.0):
+                        inlier_count += 1
 
-            if dist.item(int(y), int(x)) < max_inlier_dist:
-                inlier += 1
-            print(str(100.0 * inlier / counter) + ' percent of a circle with radius ' + str(radius) + " detected")
+            completeness_percentage = (inlier_count / total_points) * 100.0
+            percentages.append(completeness_percentage)
+            print(f"{completeness_percentage:.2f}% of a circle with radius {radius} detected at ({center[0]}, {center[1]})")
+
+    return percentages
 
 
 def contour_intersect(original_image, contour1, contour2):
@@ -115,6 +116,38 @@ def contour_intersect(original_image, contour1, contour2):
     intersection = np.logical_and(image1, image2)
 
     return intersection.any()
+
+
+def categorize_shapes(contour):
+    """
+    Function to categorize shapes based on the number of sides.
+
+    Args:
+        contour (numpy.ndarray): The contour to be categorized.
+
+    Returns:
+        str: The category of the shape (e.g., 'circle', 'semicircle', 'triangle', 'rectangle', etc.).
+    """
+    num_sides = len(cv2.approxPolyDP(contour, 0.06 * cv2.arcLength(contour, True), True))
+
+    if num_sides >= 13:
+        return 'circle'
+    elif num_sides == 7:
+        return 'semicircle'
+    elif num_sides == 6:
+        return 'quarter circle'
+    elif num_sides == 3:
+        return 'triangle'
+    elif num_sides == 4:
+        return 'rectangle'
+    elif num_sides == 5:
+        return 'pentagon'
+    elif num_sides == 10:
+        return 'star'
+    elif num_sides == 12:
+        return 'cross'
+    else:
+        return 'unknown'
 
 
 def detect_targets(image):
@@ -147,7 +180,7 @@ def detect_targets(image):
     max_rect_contour_area = 1000
 
     # for loop to draw contours for each shape detected
-    for cnt in contours:
+    for cnt in contours: 
         # if the contour area is between the minimum and maximum areas, it zooms out from the contour with bounded rectangles and applies thresholding
         if min_contour_area < cv2.contourArea(cnt) < max_contour_area:
             # creates bounded rectangle
@@ -165,19 +198,15 @@ def detect_targets(image):
             # finds contours in cropped image
             contours, hierarchy = cv2.findContours(threshold_image, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
-            # get_circle_percentages(threshold_image)
-
             # creates convex hulls from contours
-            hull = []
+            hull = np.ndarray(1)
             for cnt in contours:
                 if min_rect_contour_area < cv2.contourArea(cnt) < max_rect_contour_area:
                     for i in range(len(contours)):
                         if not contour_intersect(cropped_image, cnt, contours[i]):
-                            hull.append(cv2.convexHull(cnt, False))
-
-                            for cnt in hull:
-                                # finds shape of contours
-                                find_shape(cnt, x, y)
+                            np.append(hull, cv2.convexHull(cnt, False))
+                            shape_category = categorize_shapes(hull)
+                            print(f"Detected {shape_category} at ({x}, {y})")
 
             # draws the convex hulls on the cropped image
             cv2.drawContours(cropped_image, hull, -1, (0, 255, 0), 3)
@@ -195,7 +224,8 @@ def detect_targets(image):
 
                         for cnt in hull:
                             # finds shape of contours
-                            find_shape(cnt, 0, 0)
+                            shape_category = categorize_shapes(cnt)
+                            print(f"Detected {shape_category} at ({x}, {y})")
 
             # draws the convex hulls
             cv2.drawContours(color_image, hull, -1, (0, 255, 0), 3)
