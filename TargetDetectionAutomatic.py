@@ -180,7 +180,7 @@ def detect_targets(image):
     max_rect_contour_area = 1000
 
     # for loop to draw contours for each shape detected
-    for cnt in contours: 
+    for cnt in contours:
         # if the contour area is between the minimum and maximum areas, it zooms out from the contour with bounded rectangles and applies thresholding
         if min_contour_area < cv2.contourArea(cnt) < max_contour_area:
             # creates bounded rectangle
@@ -199,14 +199,17 @@ def detect_targets(image):
             contours, hierarchy = cv2.findContours(threshold_image, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
             # creates convex hulls from contours
-            hull = np.ndarray(1)
+            hull = []
             for cnt in contours:
                 if min_rect_contour_area < cv2.contourArea(cnt) < max_rect_contour_area:
                     for i in range(len(contours)):
                         if not contour_intersect(cropped_image, cnt, contours[i]):
-                            np.append(hull, cv2.convexHull(cnt, False))
-                            shape_category = categorize_shapes(hull)
-                            print(f"Detected {shape_category} at ({x}, {y})")
+                            hull.append(cv2.convexHull(cnt, False))
+
+                            for cnt in hull:
+                                # finds shape of contours
+                                shape_category = categorize_shapes(cnt)
+                                print(f"Detected {shape_category} at ({x}, {y})")
 
             # draws the convex hulls on the cropped image
             cv2.drawContours(cropped_image, hull, -1, (0, 255, 0), 3)
