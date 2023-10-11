@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
 from matplotlib import pyplot as plt
-
+import pytesseract
 
 def create_mask(image, lower_hue, lower_saturation, lower_value, upper_hue, upper_saturation, upper_value):
     """
@@ -25,6 +25,8 @@ def create_mask(image, lower_hue, lower_saturation, lower_value, upper_hue, uppe
 
     return mask
 
+def find_letter(image):
+    return pytesseract.image_to_string(image, lang = 'eng')
 
 def find_shape(contour, rect_location_x, rect_location_y):
     """
@@ -71,7 +73,7 @@ def get_circle_percentages(image):
 
     if circles is not None:
         for circle in circles[0, :]:
-            center = (int(circle[0]), int(circle[1]))
+            center = int(circle[0]), int(circle[1])
             radius = int(circle[2])
 
             inlier_count = 0
@@ -118,6 +120,117 @@ def contour_intersect(original_image, contour1, contour2):
     return intersection.any()
 
 
+def detect_dominant_color(image, k=3):
+    """
+    Function to detect the dominant color in an image using k-means clustering.
+
+    Args:
+        image (numpy.ndarray): The input image in BGR color space.
+        k (int): The number of dominant colors to detect using k-means clustering.
+
+    Returns:
+        str: The label of the dominant color in the image.
+    """
+    data = np.float32(image).reshape((-1, 3))
+    criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 20, 0.001)
+    ret, label, center = cv2.kmeans(data, k, None, criteria, 10, cv2.KMEANS_RANDOM_CENTERS)
+    center = np.uint8(center)
+
+    # Sort the dominant colors by frequency
+    labels, counts = np.unique(label, return_counts=True)
+    sorted_labels = labels[np.argsort(-counts)]  # Sort in descending order of frequency
+    sorted_colors = [get_color_label(center[label]) for label in sorted_labels]
+
+    # Find the most frequent dominant color
+    dominant_color = sorted_colors[0] if sorted_colors else "unknown"
+    return dominant_color
+
+def get_color_label(color_rgb):
+    color_ranges = {
+         "white": [(0, 0, 200), (179, 30, 255)],  # HSV values for white
+         "black": [(0, 0, 0), (179, 30, 50)],     # HSV values for black
+         "red": [(0, 100, 100), (10, 255, 255)],  # HSV values for red (lower and upper bounds)
+         "blue": [(90, 50, 50), (130, 255, 255)],  # HSV values for blue (lower and upper bounds)
+         "green": [(35, 100, 100), (85, 255, 255)],  # HSV values for green (lower and upper bounds)
+         "purple": [(125, 100, 100), (155, 255, 255)],  # HSV values for purple (lower and upper bounds)
+         "brown": [(10, 100, 100), (30, 255, 255)],  # HSV values for brown (lower and upper bounds)
+         "orange": [(5, 100, 100), (20, 255, 255)],  # HSV values for orange (lower and upper bounds)
+         "any": [(0, 0, 0), (179, 255, 255)]
+    }
+
+def detect_colors_in_hulls(image, hulls, k=3):
+    """
+    Function to detect the dominant color within the specified hulls in an image.
+
+    Args:
+        image (numpy.ndarray): The input image in BGR color space.
+        hulls (list): A list of convex hulls (contours) to analyze.
+        k (int): The number of dominant colors to detect using k-means clustering.
+
+    Returns:
+        str: The label of the dominant color within the hulls.
+    """
+    detected_color = "unknown"
+
+    for hull in hulls:
+        # Get the bounding rectangle for the current hull
+        x, y, w, h = cv2.boundingRect(hull)
+
+        # Extract the region of interest (ROI) from the image
+        roi = image[y:y + h, x:x + w]
+
+        # Detect the dominant color within the ROI
+        dominant_color_roi = detect_dominant_color(roi, k)
+
+        # If a dominant color is found in the ROI, use it as the detected color
+        if dominant_color_roi != "unknown":
+            detected_color = dominant_color_roi
+            break
+
+    return detected_color
+
+    
+
+    # color_ranges = {
+    #     "white": [(0, 0, 200), (179, 30, 255)],  # HSV values for white
+    #     "black": [(0, 0, 0), (179, 30, 50)],     # HSV values for black
+    #     "red": [(0, 100, 100), (10, 255, 255)],  # HSV values for red (lower and upper bounds)
+    #     "blue": [(90, 50, 50), (130, 255, 255)],  # HSV values for blue (lower and upper bounds)
+    #     "green": [(35, 100, 100), (85, 255, 255)],  # HSV values for green (lower and upper bounds)
+    #     "purple": [(125, 100, 100), (155, 255, 255)],  # HSV values for purple (lower and upper bounds)
+    #     "brown": [(10, 100, 100), (30, 255, 255)],  # HSV values for brown (lower and upper bounds)
+    #     "orange": [(5, 100, 100), (20, 255, 255)],  # HSV values for orange (lower and upper bounds)
+    #     "any": [(0, 0, 0), (179, 255, 255)]
+    # }
+
+    # def is_color_in_range(color, color_range):
+    #     return all(color_range[0] <= color <= color_range[1] for color, color_range in zip(color, color_range))
+
+    # detected_colors = []
+
+    # for hull in hulls:
+    #     # Get the bounding rectangle for the current hull
+    #     x, y, w, h = cv2.boundingRect(hull)
+
+    #     # Extract the region of interest (ROI) from the image
+    #     roi = image[y:y + h, x:x + w]
+
+    #     # Calculate the average color within the ROI
+    #     average_color = np.mean(roi, axis=(0, 1)).astype(int)
+
+    #     # Find the closest color based on the average color
+    #     closest_color = None
+    #     for color_label, color_range in color_ranges.items():
+    #         if is_color_in_range(average_color, color_range):
+    #             closest_color = color_label
+    #             break
+
+    #     if closest_color is not None:
+    #         detected_colors.append(closest_color)
+
+    # return detected_colors
+
+
 def categorize_shapes(contour):
     """
     Function to categorize shapes based on the number of sides.
@@ -128,7 +241,7 @@ def categorize_shapes(contour):
     Returns:
         str: The category of the shape (e.g., 'circle', 'semicircle', 'triangle', 'rectangle', etc.).
     """
-    num_sides = len(cv2.approxPolyDP(contour, 0.06 * cv2.arcLength(contour, True), True))
+    num_sides = len(cv2.approxPolyDP(contour, 0.090 * cv2.arcLength(contour, True), True))
 
     if num_sides >= 13:
         return 'circle'
@@ -192,6 +305,8 @@ def detect_targets(image):
             cropped_image = color_image[y:y+h+45, x:x+w+45]
             cropped_grayscale_image = cv2.cvtColor(cropped_image, cv2.COLOR_BGR2GRAY)
 
+            print(find_letter(cropped_grayscale_image))
+
             # applies threshold algorithm
             threshold_image = cv2.threshold(cropped_grayscale_image, 127, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
 
@@ -206,10 +321,14 @@ def detect_targets(image):
                         if not contour_intersect(cropped_image, cnt, contours[i]):
                             hull.append(cv2.convexHull(cnt, False))
 
-                            for cnt in hull:
-                                # finds shape of contours
-                                shape_category = categorize_shapes(cnt)
-                                print(f"Detected {shape_category} at ({x}, {y})")
+            for cnt in hull:
+                # finds shape of contours
+                shape_category = categorize_shapes(cnt)
+                print(f"Detected {shape_category} at ({x}, {y})")
+
+            color_image = cv2.cvtColor(cv2.imread(image), cv2.COLOR_RGB2BGR)
+            print(detect_colors_in_hulls(cropped_image, hull))
+            color_image = cv2.cvtColor(cv2.imread(image), cv2.COLOR_BGR2RGB)
 
             # draws the convex hulls on the cropped image
             cv2.drawContours(cropped_image, hull, -1, (0, 255, 0), 3)
@@ -218,6 +337,16 @@ def detect_targets(image):
             color_image[y:y+cropped_image.shape[0], x:x+cropped_image.shape[1]] = cropped_image
         # if the contour is not within the minimum and maximum areas, then it just draws the convex hulls
         else:
+            [x, y, w, h] = cv2.boundingRect(cnt)
+            x -= 20
+            y -= 20
+
+            # crops image to bounded rectangle and creates a grayscale image
+            cropped_image = color_image[y:y+h+45, x:x+w+45]
+            cropped_grayscale_image = cv2.cvtColor(cropped_image, cv2.COLOR_BGR2GRAY)
+
+            print(find_letter(cropped_grayscale_image))
+            
             # creates convex hulls from contours
             hull = []
             if cv2.contourArea(cnt) > min_contour_area:
@@ -225,14 +354,25 @@ def detect_targets(image):
                     if not contour_intersect(cropped_image, cnt, contours[i]):
                         hull.append(cv2.convexHull(cnt, False))
 
-                        for cnt in hull:
-                            # finds shape of contours
-                            shape_category = categorize_shapes(cnt)
-                            print(f"Detected {shape_category} at ({x}, {y})")
+                [x, y, w, h] = cv2.boundingRect(cnt)
+                x -= 20
+                y -= 20
+
+                # finds shape of contours
+                shape_category = categorize_shapes(cnt)
+                print(f"Detected {shape_category} at ({x}, {y})")
+
+                color_image = cv2.cvtColor(cv2.imread(image), cv2.COLOR_RGB2BGR)
+                print(detect_colors_in_hulls(color_image, hull))
+                color_image = cv2.cvtColor(cv2.imread(image), cv2.COLOR_BGR2RGB)
 
             # draws the convex hulls
-            cv2.drawContours(color_image, hull, -1, (0, 255, 0), 3)
+            cv2.drawContours(color_image_hsv, hull, -1, (0, 255, 0), 3)
+
+    color_image = cv2.cvtColor(cv2.imread(image), cv2.COLOR_RGB2BGR)
+    #HSV(color_image, color_image_hsv)
     return result_image, color_image
+
 
 
 def display_graph(original_image, result_image, final_image):
@@ -257,14 +397,38 @@ def display_graph(original_image, result_image, final_image):
     plt.show()
 
 
+from matplotlib import colors
+def HSV(image, hsv_image):
+    h, s, v = cv2.split(hsv_image)
+    fig = plt.figure()
+    axis = fig.add_subplot(1, 1, 1, projection="3d")
+
+    nemo = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    #plt.imshow(nemo)
+    #plt.show()
+
+
+    pixel_colors = nemo.reshape((np.shape(nemo)[0]*np.shape(nemo)[1], 3))
+    norm = colors.Normalize(vmin=-1.,vmax=1.)
+    norm.autoscale(pixel_colors)
+    pixel_colors = norm(pixel_colors).tolist()
+
+    axis.scatter(h.flatten(), s.flatten(), v.flatten(), facecolors=pixel_colors, marker=".")
+    axis.set_xlabel("Hue")
+    axis.set_ylabel("Saturation")
+    axis.set_zlabel("Value")
+    plt.show()
+
+
 def main():
     """
     Main method that initializes and runs everything.
     """
     IMAGE_PATH = "images1/drone1.jpg"  # image file location
+    pytesseract.pytesseract.tesseract_cmd = 'tesseract/tesseract.exe'  # your path may be different
     detected_images = detect_targets(IMAGE_PATH)
     display_graph(IMAGE_PATH, detected_images[0], detected_images[1])
-
+    
 
 if __name__ == "__main__":
     main()
