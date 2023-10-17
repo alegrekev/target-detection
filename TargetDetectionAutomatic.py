@@ -26,7 +26,7 @@ def create_mask(image, lower_hue, lower_saturation, lower_value, upper_hue, uppe
     return mask
 
 def find_letter(image):
-    return pytesseract.image_to_string(image, lang = 'eng')
+    return pytesseract.image_to_string(image, lang = 'eng', config='--psm 7')
 
 def find_shape(contour, rect_location_x, rect_location_y):
     """
@@ -171,21 +171,28 @@ def detect_colors_in_hulls(image, hulls, k=3):
         str: The label of the dominant color within the hulls.
     """
     detected_color = "unknown"
-
+    x, y, w, h = 0, 0, 0, 0
     for hull in hulls:
         # Get the bounding rectangle for the current hull
-        x, y, w, h = cv2.boundingRect(hull)
-
+        hullx, hully, hullw, hullh = cv2.boundingRect(hull)
+        if hullx < x:
+            x = hullx
+        if hully < y:
+            y = hully
+        if hullw > w:
+            w = hullw
+        if hullh > h:
+            h = hullh
         # Extract the region of interest (ROI) from the image
-        roi = image[y:y + h, x:x + w]
+    roi = image[y:y + h, x:x + w]
 
         # Detect the dominant color within the ROI
-        dominant_color_roi = detect_dominant_color(roi, k)
+    dominant_color_roi = detect_dominant_color(roi, k)
 
         # If a dominant color is found in the ROI, use it as the detected color
-        if dominant_color_roi != "unknown":
-            detected_color = dominant_color_roi
-            break
+    if dominant_color_roi != "unknown":
+        detected_color = dominant_color_roi
+        
 
     return detected_color
 
@@ -304,8 +311,10 @@ def detect_targets(image):
             # crops image to bounded rectangle and creates a grayscale image
             cropped_image = color_image[y:y+h+45, x:x+w+45]
             cropped_grayscale_image = cv2.cvtColor(cropped_image, cv2.COLOR_BGR2GRAY)
+            cv2.imwrite('images1/croppedDrone.jpg', cropped_image)
+            cropped_target = "images1/croppedDrone.jpg"
 
-            print(find_letter(cropped_grayscale_image))
+            print(find_letter(cropped_target))
 
             # applies threshold algorithm
             threshold_image = cv2.threshold(cropped_grayscale_image, 127, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
@@ -336,27 +345,27 @@ def detect_targets(image):
             # overlays cropped image onto color image
             color_image[y:y+cropped_image.shape[0], x:x+cropped_image.shape[1]] = cropped_image
         # if the contour is not within the minimum and maximum areas, then it just draws the convex hulls
-        else:
-            [x, y, w, h] = cv2.boundingRect(cnt)
-            x -= 20
-            y -= 20
-
-            # crops image to bounded rectangle and creates a grayscale image
-            cropped_image = color_image[y:y+h+45, x:x+w+45]
-            cropped_grayscale_image = cv2.cvtColor(cropped_image, cv2.COLOR_BGR2GRAY)
-
-            print(find_letter(cropped_grayscale_image))
-            
+        else:            
             # creates convex hulls from contours
             hull = []
             if cv2.contourArea(cnt) > min_contour_area:
+                [x, y, w, h] = cv2.boundingRect(cnt)
+                x -= 20
+                y -= 20
+
+                # crops image to bounded rectangle and creates a grayscale image
+                cropped_image = color_image[y:y+h+25, x:x+w+25]
+                cropped_grayscale_image = cv2.cvtColor(cropped_image, cv2.COLOR_BGR2GRAY)
+                cv2.imwrite('images1/croppedDrone.jpg', cropped_image)
+                cropped_target = "images1/croppedDrone.jpg"
+
                 for i in range(len(contours)):
                     if not contour_intersect(cropped_image, cnt, contours[i]):
                         hull.append(cv2.convexHull(cnt, False))
 
-                [x, y, w, h] = cv2.boundingRect(cnt)
-                x -= 20
-                y -= 20
+
+                print(find_letter(cropped_target))
+                print("bruh")
 
                 # finds shape of contours
                 shape_category = categorize_shapes(cnt)
@@ -369,7 +378,7 @@ def detect_targets(image):
             # draws the convex hulls
             cv2.drawContours(color_image_hsv, hull, -1, (0, 255, 0), 3)
 
-    color_image = cv2.cvtColor(cv2.imread(image), cv2.COLOR_RGB2BGR)
+    #color_image = cv2.cvtColor(cv2.imread(image), cv2.COLOR_RGB2BGR)
     #HSV(color_image, color_image_hsv)
     return result_image, color_image
 
