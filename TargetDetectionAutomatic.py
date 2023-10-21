@@ -312,8 +312,8 @@ def detect_targets(image):
             # crops image to bounded rectangle and creates a grayscale image
             cropped_image = color_image[y:y+h+45, x:x+w+45]
             cropped_grayscale_image = cv2.cvtColor(cropped_image, cv2.COLOR_BGR2GRAY)
-            cv2.imwrite('images1/croppedDrone.jpg', cropped_image)
-            cropped_target = "images1/croppedDrone.jpg"
+            cv2.imwrite('target-detection/images1/croppedDrone.jpg', cropped_image)
+            cropped_target = "target-detection/images1/croppedDrone.jpg"
 
             print(find_letter(cropped_target))
 
@@ -357,8 +357,8 @@ def detect_targets(image):
                 # crops image to bounded rectangle and creates a grayscale image
                 cropped_image = color_image[y:y+h+25, x:x+w+25]
                 cropped_grayscale_image = cv2.cvtColor(cropped_image, cv2.COLOR_BGR2GRAY)
-                cv2.imwrite('images1/croppedDrone.jpg', cropped_image)
-                cropped_target = "images1/croppedDrone.jpg"
+                cv2.imwrite('target-detection/images1/croppedDrone.jpg', cropped_image)
+                cropped_target = "target-detection/images1/croppedDrone.jpg"
 
                 for i in range(len(contours)):
                     if not contour_intersect(cropped_image, cnt, contours[i]):
@@ -434,8 +434,8 @@ def main():
     """
     Main method that initializes and runs everything.
     """
-    IMAGE_PATH = "images1/drone1.jpg"  # image file location
-    pytesseract.pytesseract.tesseract_cmd = 'tesseract/tesseract.exe'  # your path may be different
+    IMAGE_PATH = "target-detection/images1/drone1.jpg"  # image file location
+    pytesseract.pytesseract.tesseract_cmd = 'target-detection/tesseract/tesseract.exe'  # your path may be different
     detected_images = detect_targets(IMAGE_PATH)
     display_graph(IMAGE_PATH, detected_images[0], detected_images[1])
     
