@@ -171,27 +171,28 @@ def detect_colors_in_hulls(image, hulls, k=3):
         str: The label of the dominant color within the hulls.
     """
     detected_color = "unknown"
-    x, y, w, h = 0, 0, 0, 0
+    # x, y, w, h = 0, 0, 0, 0
     for hull in hulls:
         # Get the bounding rectangle for the current hull
-        hullx, hully, hullw, hullh = cv2.boundingRect(hull)
-        if hullx < x:
-            x = hullx
-        if hully < y:
-            y = hully
-        if hullw > w:
-            w = hullw
-        if hullh > h:
-            h = hullh
+        x, y, w, h = cv2.boundingRect(hull)
+        # if hullx < x:
+        #     x = hullx
+        # if hully < y:
+        #     y = hully
+        # if hullw > w:
+        #     w = hullw
+        # if hullh > h:
+        #     h = hullh
         # Extract the region of interest (ROI) from the image
-    roi = image[y:y + h, x:x + w]
+        roi = image[y:y + h, x:x + w]
 
-        # Detect the dominant color within the ROI
-    dominant_color_roi = detect_dominant_color(roi, k)
+            # Detect the dominant color within the ROI
+        dominant_color_roi = detect_dominant_color(roi, k)
 
-        # If a dominant color is found in the ROI, use it as the detected color
-    if dominant_color_roi != "unknown":
-        detected_color = dominant_color_roi
+            # If a dominant color is found in the ROI, use it as the detected color
+        if dominant_color_roi != "unknown":
+            detected_color = dominant_color_roi
+            break
         
 
     return detected_color
